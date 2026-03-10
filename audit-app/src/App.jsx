@@ -10,7 +10,8 @@ import {
   FileSpreadsheet, CheckCircle, RefreshCw, XCircle, FilePlus,
   ArrowRight, Package, Receipt, ToggleRight, Edit3, Plus, GitBranch,
   ArrowDown, Send, MessageSquare, ExternalLink, ThumbsUp, ThumbsDown, Copy,
-  Database, Cpu
+  Database, Cpu, Activity, Users, Globe, Lock, X, Zap, ShieldAlert,
+  CheckCircle2, Circle, UserCheck, ThumbsUp as Approve
 } from 'lucide-react';
 
 // --- MOCK DATA ---
@@ -31,11 +32,11 @@ const heatmapData = [
   { name: 'V-088', compliance: 60, duplicates: 30, amtRisk: 70 }, { name: 'V-102', compliance: 90, duplicates: 90, amtRisk: 100 },
 ];
 const highRiskTransactions = [
-  { id: 'INV-2026-9042', vendor: 'Nexus Consulting', amount: '$150,000', score: 98, reason: 'Unauthorized Vendor & No PO', action: 'Block Payment & Escalate' },
-  { id: 'INV-2026-9081', vendor: 'TechGlobal Supplies', amount: '$45,000', score: 85, reason: 'Price Variance > 30%', action: 'Review Contract Terms' },
-  { id: 'INV-2026-9114', vendor: 'Alpha Services Ltd', amount: '$12,500', score: 82, reason: 'Duplicate (Inv Date/Amt)', action: 'Reject Duplicate' },
-  { id: 'INV-2026-9205', vendor: 'Delta Logistics', amount: '$8,400', score: 76, reason: 'Weekend Entry & No GRN', action: 'Verify GRN' },
-  { id: 'INV-2026-9311', vendor: 'Global Logistics', amount: '$52,100', score: 90, reason: 'Missing GSTIN', action: 'Hold Payment Pending KYC' },
+  { id: 'INV-2026-9042', vendor: 'Nexus Consulting', amount: '$150,000', score: 98, reason: 'Unauthorized Vendor & No PO', action: 'Block Payment & Escalate', agent: 'Procurement Validation Agent' },
+  { id: 'INV-2026-9081', vendor: 'TechGlobal Supplies', amount: '$45,000', score: 85, reason: 'Price Variance > 30%', action: 'Review Contract Terms', agent: 'Pricing Anomaly Agent' },
+  { id: 'INV-2026-9114', vendor: 'Alpha Services Ltd', amount: '$12,500', score: 82, reason: 'Duplicate (Inv Date/Amt)', action: 'Reject Duplicate', agent: 'Duplicate Detection Agent' },
+  { id: 'INV-2026-9205', vendor: 'Delta Logistics', amount: '$8,400', score: 76, reason: 'Weekend Entry & No GRN', action: 'Verify GRN', agent: 'Procurement Validation Agent' },
+  { id: 'INV-2026-9311', vendor: 'Global Logistics', amount: '$52,100', score: 90, reason: 'Missing GSTIN', action: 'Hold Payment Pending KYC', agent: 'GST Compliance Agent' },
 ];
 const sampleDataPreview = [
   { id: 'TXN-90981', date: '2026-06-12', vendor: 'Omega Corp', poRef: 'PO-2026-88', total: '12,500.00', currency: 'USD', gst: 'Valid' },
@@ -75,8 +76,132 @@ const complianceIssues = [
   { id: 'INV-2026-8201', vendor: 'Nexus Consulting', gstStatus: 'Valid', taxAmt: '$27,000.00', issue: 'Reverse charge conflict', risk: 'Medium' },
 ];
 
+const agentFeedData = [
+  { time: '14:02', agent: 'Procurement Validation Agent', color: '#dc2626', action: 'flagged INV-2026-9042', detail: 'Missing PO + Unauthorized Vendor', score: 98, type: 'flag' },
+  { time: '14:05', agent: 'GST Compliance Agent', color: '#f59e0b', action: 'flagged INV-2026-8733', detail: 'GSTIN checksum mismatch — Invalid format', score: 87, type: 'flag' },
+  { time: '14:07', agent: 'Vendor Intelligence Agent', color: '#f59e0b', action: 'analyzed Nexus Consulting', detail: 'Suspicious registration date — incorporated 2024', score: null, type: 'verify' },
+  { time: '14:09', agent: 'Duplicate Detection Agent', color: '#dc2626', action: 'flagged INV-2026-9114', detail: 'Exact duplicate of INV-2026-0891 (2 days apart)', score: 82, type: 'flag' },
+  { time: '14:12', agent: 'Pricing Anomaly Agent', color: '#f59e0b', action: 'flagged INV-2026-9081', detail: 'Unit price 31% above contract rate', score: 85, type: 'flag' },
+  { time: '14:15', agent: 'Procurement Validation Agent', color: '#8cc63f', action: 'cleared INV-2026-9330', detail: 'PO + GRN + Invoice quantities matched', score: null, type: 'clear' },
+  { time: '14:18', agent: 'Escalation Agent', color: '#0076a8', action: 'escalated INV-2026-9042 to Human Review', detail: 'High-risk threshold exceeded — CFO approval required', score: null, type: 'escalate' },
+];
+
+const vendorData = [
+  {
+    id: 'V-001', name: 'Nexus Consulting', gstin: 'Not Registered', riskScore: 94, riskBand: 'Critical',
+    checks: [
+      { label: 'MCA Registry', status: 'warn', detail: 'Incorporated Mar 2024 — 6 months old' },
+      { label: 'GST Portal Status', status: 'warn', detail: 'Recently activated — no filing history' },
+      { label: 'Website Presence', status: 'fail', detail: 'Domain not found — no online presence' },
+      { label: 'Blacklist Cross-reference', status: 'fail', detail: 'Flagged in 2 industry watchlists' },
+      { label: 'Related Vendor Flags', status: 'warn', detail: 'Shared director DIN with Alpha Services Ltd' },
+    ],
+    sources: ['MCA21 Registry', 'GST Portal', 'Brave Search', 'Exa.ai', 'Web Scraper'],
+  },
+  {
+    id: 'V-002', name: 'TechGlobal Supplies', gstin: '27AABCT3518Q1ZV', riskScore: 62, riskBand: 'Medium',
+    checks: [
+      { label: 'MCA Registry', status: 'pass', detail: 'Active — incorporated 2018' },
+      { label: 'GST Portal Status', status: 'warn', detail: 'GSTIN active but 2 returns missed (Q3, Q4 2025)' },
+      { label: 'Website Presence', status: 'pass', detail: 'Domain active — SSL valid' },
+      { label: 'Blacklist Cross-reference', status: 'pass', detail: 'No matches found' },
+      { label: 'Related Vendor Flags', status: 'warn', detail: 'Common address with Global Logistics' },
+    ],
+    sources: ['MCA21 Registry', 'GST Portal', 'Brave Search', 'LinkedIn'],
+  },
+  {
+    id: 'V-003', name: 'Delta Logistics', gstin: '07AADCD4291M1ZF', riskScore: 38, riskBand: 'Low',
+    checks: [
+      { label: 'MCA Registry', status: 'pass', detail: 'Active — incorporated 2011' },
+      { label: 'GST Portal Status', status: 'pass', detail: 'Regular filer — all returns submitted' },
+      { label: 'Website Presence', status: 'pass', detail: 'Domain active — established web presence' },
+      { label: 'Blacklist Cross-reference', status: 'pass', detail: 'No matches found' },
+      { label: 'Related Vendor Flags', status: 'pass', detail: 'No related party flags' },
+    ],
+    sources: ['MCA21 Registry', 'GST Portal', 'Brave Search'],
+  },
+  {
+    id: 'V-004', name: 'Alpha Services Ltd', gstin: '29AADCA0987P1ZQ', riskScore: 79, riskBand: 'High',
+    checks: [
+      { label: 'MCA Registry', status: 'pass', detail: 'Active — incorporated 2020' },
+      { label: 'GST Portal Status', status: 'fail', detail: 'GSTIN belongs to different entity name' },
+      { label: 'Website Presence', status: 'warn', detail: 'Parked domain — no business content' },
+      { label: 'Blacklist Cross-reference', status: 'pass', detail: 'No direct matches' },
+      { label: 'Related Vendor Flags', status: 'warn', detail: 'Shared director DIN with Nexus Consulting' },
+    ],
+    sources: ['MCA21 Registry', 'GST Portal', 'Exa.ai', 'Web Scraper'],
+  },
+];
+
+const reviewQueueData = [
+  {
+    id: 'ESC-001', invoiceId: 'INV-2026-9042', vendor: 'Nexus Consulting', amount: '$150,000',
+    agent: 'Procurement Validation Agent', score: 98, priority: 'Critical',
+    rule: 'RUL-002 — High Value Tx Approval (>₹10 Lakh)',
+    evidence: 'No PO reference found in system. Vendor registered 6 months ago. Payment amount exceeds CFO approval threshold.',
+    status: 'Pending',
+  },
+  {
+    id: 'ESC-002', invoiceId: 'INV-2026-9311', vendor: 'Global Logistics', amount: '$52,100',
+    agent: 'GST Compliance Agent', score: 90, priority: 'High',
+    rule: 'RUL-001 — GSTIN Validation (Missing/Invalid)',
+    evidence: 'GSTIN field empty. Tax amount of $9,378 claimed without valid registration. ITC eligibility at risk.',
+    status: 'Pending',
+  },
+  {
+    id: 'ESC-003', invoiceId: 'INV-2026-9081', vendor: 'TechGlobal Supplies', amount: '$45,000',
+    agent: 'Pricing Anomaly Agent', score: 85, priority: 'High',
+    rule: 'RUL-005 — Contract Price Variance (>20%)',
+    evidence: 'Invoice unit price $45/unit vs contracted $34.35/unit. Variance 31%. GRN shows 1,000 units received.',
+    status: 'Pending',
+  },
+  {
+    id: 'ESC-004', invoiceId: 'INV-2026-9205', vendor: 'Delta Logistics', amount: '$8,400',
+    agent: 'Procurement Validation Agent', score: 76, priority: 'Medium',
+    rule: 'RUL-004 — Weekend Posting Detection',
+    evidence: 'Invoice posted Saturday 14:32. No GRN record found. Manual entry flag raised.',
+    status: 'Under Review',
+  },
+];
+
+// --- GENW BADGE COMPONENT ---
+const GenwBadge = ({ label }) => (
+  <span className="genw-badge"><Zap size={10} style={{ marginRight: 3 }} />{label}</span>
+);
+
+// --- AGENT ACTIVITY FEED COMPONENT ---
+const AgentActivityFeed = ({ entries }) => (
+  <div className="agent-feed">
+    {entries.map((e, i) => (
+      <div key={i} className="agent-entry">
+        <div className="agent-entry-top">
+          <span className="agent-time">{e.time}</span>
+          <span className="agent-name" style={{ color: e.color }}>{e.agent}</span>
+        </div>
+        <div className="agent-entry-action">{e.action}</div>
+        <div className="agent-entry-detail">{e.detail}</div>
+        {e.score && (
+          <span className="agent-score-badge" style={{ background: e.score >= 90 ? '#fee2e2' : '#ffedd5', color: e.score >= 90 ? '#dc2626' : '#c2410c' }}>Risk {e.score}</span>
+        )}
+        {e.type === 'clear' && <span className="agent-clear-badge">Cleared</span>}
+        {e.type === 'escalate' && <span className="agent-escalate-badge">Escalated</span>}
+      </div>
+    ))}
+  </div>
+);
+
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [discrepancyModal, setDiscrepancyModal] = useState({ open: false, row: null });
+  const [overrideModal, setOverrideModal] = useState({ open: false, itemId: null });
+  const [overrideText, setOverrideText] = useState('');
+  const [reviewStatuses, setReviewStatuses] = useState({});
+
+  const handleOverrideSubmit = () => {
+    setReviewStatuses(prev => ({ ...prev, [overrideModal.itemId]: 'overridden' }));
+    setOverrideModal({ open: false, itemId: null });
+    setOverrideText('');
+  };
 
   const renderDashboard = () => (
     <div className="dashboard-content">
@@ -157,10 +282,40 @@ function App() {
           <div style={{ fontSize: '24px', fontWeight: 700, margin: '8px 0' }}>1,204</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Requires manual justification</div>
         </div>
       </div>
-      <div className="panel" style={{ padding: '24px' }}><div className="panel-header" style={{ marginBottom: '16px' }}><div className="panel-title" style={{ fontSize: '15px' }}>High Risk Transactions Table</div></div>
-        <table className="data-table"><thead><tr><th>Invoice ID</th><th>Vendor</th><th>Amount</th><th>Risk Score</th><th>Flag Reason</th><th>Suggested Action</th></tr></thead>
-          <tbody>{highRiskTransactions.map((tx, i) => (<tr key={i}><td style={{ fontWeight: 500, color: 'var(--primary-color)' }}>{tx.id}</td><td>{tx.vendor}</td><td style={{ fontWeight: 500 }}>{tx.amount}</td><td><div style={{ display: 'inline-block', backgroundColor: tx.score > 90 ? 'var(--danger-color)' : (tx.score > 80 ? 'var(--warning-color)' : 'var(--text-muted)'), color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>{tx.score}</div></td><td style={{ color: 'var(--danger-color)', fontSize: '13px' }}>{tx.reason}</td><td style={{ fontSize: '13px', fontWeight: 500 }}>{tx.action}</td></tr>))}</tbody>
-        </table>
+      <div style={{ display: 'grid', gridTemplateColumns: '65% 35%', gap: '24px' }}>
+        <div className="panel" style={{ padding: '24px' }}>
+          <div className="panel-header" style={{ marginBottom: '4px' }}>
+            <div className="panel-title" style={{ fontSize: '15px' }}>Agent-Flagged Escalation Queue</div>
+          </div>
+          <div style={{ marginBottom: '16px' }}><GenwBadge label="GenW Agent Builder" /></div>
+          <table className="data-table">
+            <thead><tr><th>Invoice ID</th><th>Vendor</th><th>Amount</th><th>Risk Score</th><th>Flagging Agent</th><th>Flag Reason</th><th>Action</th></tr></thead>
+            <tbody>{highRiskTransactions.map((tx, i) => (
+              <tr key={i}>
+                <td style={{ fontWeight: 500, color: 'var(--primary-color)', fontSize: '13px' }}>{tx.id}</td>
+                <td style={{ fontSize: '13px' }}>{tx.vendor}</td>
+                <td style={{ fontWeight: 500, fontSize: '13px' }}>{tx.amount}</td>
+                <td><div style={{ display: 'inline-block', backgroundColor: tx.score > 90 ? 'var(--danger-color)' : (tx.score > 80 ? 'var(--warning-color)' : 'var(--text-muted)'), color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>{tx.score}</div></td>
+                <td><span className="agent-tag">{tx.agent}</span></td>
+                <td style={{ color: 'var(--danger-color)', fontSize: '12px' }}>{tx.reason}</td>
+                <td style={{ fontSize: '12px', fontWeight: 500 }}>{tx.action}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div className="panel" style={{ padding: '0', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: 4 }}>Audit Intelligence Activity</div>
+              <GenwBadge label="GenW Agent Builder" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="live-dot"></span>
+              <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>LIVE</span>
+            </div>
+          </div>
+          <AgentActivityFeed entries={agentFeedData} />
+        </div>
       </div>
     </div>
   );
@@ -201,35 +356,91 @@ function App() {
     </div>
   );
 
+  const matchingStatusStyle = (status) => {
+    if (status === 'Match') return { border: '2px solid #16a34a', color: '#16a34a', background: '#f0fdf4' };
+    if (status === 'Missing GRN') return { border: '2px dashed #dc2626', color: '#dc2626', background: '#fff5f5' };
+    return { border: '2px solid #f59e0b', color: '#b45309', background: '#fffbeb' };
+  };
+
   const renderMatching = () => (
     <div className="dashboard-content">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div style={{ gridColumn: 'span 2', display: 'grid', gap: '16px' }}>
           <div className="panel" style={{ padding: '20px' }}><div className="kpi-title">Transactions Checked</div><div className="kpi-value" style={{ fontSize: '32px' }}>42,840</div></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="panel" style={{ padding: '20px', borderLeft: '4px solid var(--secondary-color)' }}><div className="kpi-title">Matching Transactions</div><div className="kpi-value" style={{ fontSize: '24px' }}>38,120</div></div>
-            <div className="panel" style={{ padding: '20px', borderLeft: '4px solid var(--danger-color)' }}><div className="kpi-title">Mismatched Records</div><div className="kpi-value" style={{ fontSize: '24px' }}>4,720</div></div>
+            <div className="panel" style={{ padding: '20px', borderLeft: '4px solid var(--secondary-color)' }}><div className="kpi-title">Matched</div><div className="kpi-value" style={{ fontSize: '24px', color: '#16a34a' }}>38,120</div></div>
+            <div className="panel" style={{ padding: '20px', borderLeft: '4px solid var(--danger-color)' }}><div className="kpi-title">Discrepancies</div><div className="kpi-value" style={{ fontSize: '24px', color: 'var(--danger-color)' }}>4,720</div></div>
           </div>
         </div>
-        <div className="panel" style={{ gridColumn: 'span 3', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '24px' }}>Three-Way Matching Pipeline</div>
+        <div className="panel" style={{ gridColumn: 'span 3', padding: '24px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: 4 }}>Three-Way Matching Pipeline</div>
+              <GenwBadge label="GenW Agent Builder" />
+            </div>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}><div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={28} color="var(--primary-color)" /></div><div style={{ fontSize: '13px', fontWeight: 600 }}>Purchase Order</div></div>
-            <div style={{ color: 'var(--accent-color)', opacity: 0.5 }}><ArrowRight size={32} /></div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}><div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Package size={28} color="var(--primary-color)" /></div><div style={{ fontSize: '13px', fontWeight: 600 }}>Goods Receipt Note</div></div>
-            <div style={{ color: 'var(--accent-color)', opacity: 0.5 }}><ArrowRight size={32} /></div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}><div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Receipt size={28} color="var(--primary-color)" /></div><div style={{ fontSize: '13px', fontWeight: 600 }}>Vendor Invoice</div></div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid #16a34a', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={28} color="#16a34a" /></div>
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>Purchase Order</div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>SOURCE</span>
+            </div>
+            <div style={{ color: 'var(--accent-color)' }}><ArrowRight size={28} /></div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid #f59e0b', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Package size={28} color="#b45309" /></div>
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>Goods Receipt Note</div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '2px 6px', borderRadius: '4px' }}>DELIVERY</span>
+            </div>
+            <div style={{ color: 'var(--accent-color)' }}><ArrowRight size={28} /></div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid #dc2626', background: '#fff5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Receipt size={28} color="#dc2626" /></div>
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>Vendor Invoice</div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>BILLING</span>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: '12px' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }}></span> Matched</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}></span> Mismatch</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, border: '2px dashed #dc2626', borderRadius: '50%', display: 'inline-block' }}></span> Missing Document</span>
           </div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '75% 25%', gap: '24px' }}>
-        <div className="panel" style={{ padding: '24px' }}><div className="panel-header" style={{ marginBottom: '16px' }}><div className="panel-title" style={{ fontSize: '15px' }}>Matching Results</div></div>
-          <table className="data-table"><thead><tr><th>PO Number</th><th>Invoice Number</th><th>GRN Ref</th><th style={{ textAlign: 'right' }}>PO Qty</th><th style={{ textAlign: 'right' }}>Recv Qty</th><th style={{ textAlign: 'right' }}>Billed Qty</th><th>Status</th></tr></thead>
-            <tbody>{matchingResults.map((row, i) => (<tr key={i}><td style={{ fontSize: '13px' }}>{row.po}</td><td style={{ fontSize: '13px', fontWeight: 500 }}>{row.invoice}</td><td style={{ fontSize: '13px' }}>{row.grn}</td><td style={{ fontSize: '13px', textAlign: 'right' }}>{row.poQty}</td><td style={{ fontSize: '13px', textAlign: 'right' }}>{row.recvQty}</td><td style={{ fontSize: '13px', textAlign: 'right' }}>{row.billsQty}</td><td><span className={`status-badge ${row.status === 'Match' ? 'status-low' : row.status === 'Missing GRN' ? 'status-high' : 'status-medium'}`}>{row.status}</span></td></tr>))}</tbody>
+      <div style={{ display: 'grid', gridTemplateColumns: '72% 28%', gap: '24px' }}>
+        <div className="panel" style={{ padding: '24px' }}>
+          <div className="panel-header" style={{ marginBottom: '16px' }}><div className="panel-title" style={{ fontSize: '15px' }}>Matching Results</div></div>
+          <table className="data-table">
+            <thead><tr><th>PO Number</th><th>Invoice Number</th><th>GRN Ref</th><th style={{ textAlign: 'right' }}>PO Qty</th><th style={{ textAlign: 'right' }}>Recv Qty</th><th style={{ textAlign: 'right' }}>Billed Qty</th><th>Status</th><th></th></tr></thead>
+            <tbody>{matchingResults.map((row, i) => (
+              <tr key={i}>
+                <td style={{ fontSize: '13px' }}>{row.po}</td>
+                <td style={{ fontSize: '13px', fontWeight: 500 }}>{row.invoice}</td>
+                <td style={{ fontSize: '13px', fontStyle: row.grn === 'Missing' ? 'italic' : 'normal', color: row.grn === 'Missing' ? 'var(--danger-color)' : 'inherit' }}>{row.grn}</td>
+                <td style={{ fontSize: '13px', textAlign: 'right' }}>{row.poQty}</td>
+                <td style={{ fontSize: '13px', textAlign: 'right', color: row.recvQty !== row.poQty ? 'var(--danger-color)' : 'inherit', fontWeight: row.recvQty !== row.poQty ? 700 : 400 }}>{row.recvQty}</td>
+                <td style={{ fontSize: '13px', textAlign: 'right', color: row.billsQty !== row.poQty ? 'var(--warning-color)' : 'inherit', fontWeight: row.billsQty !== row.poQty ? 700 : 400 }}>{row.billsQty}</td>
+                <td>
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', ...matchingStatusStyle(row.status) }}>{row.status}</span>
+                </td>
+                <td>
+                  {row.status !== 'Match' && (
+                    <button className="detail-btn" onClick={() => setDiscrepancyModal({ open: true, row })}>View Detail</button>
+                  )}
+                </td>
+              </tr>
+            ))}</tbody>
           </table>
         </div>
-        <div className="panel" style={{ padding: '24px' }}><div className="panel-header" style={{ marginBottom: '16px' }}><div className="panel-title" style={{ fontSize: '15px' }}>Top Discrepancy Themes</div></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>{matchingExceptions.map((exc, i) => (<div key={i} style={{ padding: '16px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f8fafc' }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}><div style={{ fontSize: '13px', fontWeight: 600 }}>{exc.vendor}</div><span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: exc.severity === 'Critical' ? '#fee2e2' : '#ffedd5', color: exc.severity === 'Critical' ? '#991b1b' : '#c2410c' }}>{exc.severity}</span></div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{exc.issue}</div></div>))}</div>
+        <div className="panel" style={{ padding: '24px' }}>
+          <div className="panel-header" style={{ marginBottom: '16px' }}><div className="panel-title" style={{ fontSize: '15px' }}>Top Discrepancy Themes</div></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>{matchingExceptions.map((exc, i) => (
+            <div key={i} style={{ padding: '16px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600 }}>{exc.vendor}</div>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: exc.severity === 'Critical' ? '#fee2e2' : '#ffedd5', color: exc.severity === 'Critical' ? '#991b1b' : '#c2410c' }}>{exc.severity}</span>
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{exc.issue}</div>
+            </div>
+          ))}</div>
         </div>
       </div>
     </div>
@@ -245,7 +456,7 @@ function App() {
         </div>
         <div className="panel" style={{ padding: '24px', borderTop: '4px solid var(--primary-color)' }}>
           <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px' }}>Policy Enforcement Mapping</div>
-          <div style={{ padding: '16px', background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '6px', marginBottom: '24px' }}><div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-color)', marginBottom: '8px' }}>Active Rule Overlay</div><div style={{ fontSize: '14px', fontWeight: 600 }}>"Transaction > ₹10 Lakh requires CFO + CEO approval."</div></div>
+          <div style={{ padding: '16px', background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '6px', marginBottom: '24px' }}><div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-color)', marginBottom: '8px' }}>Active Rule Overlay</div><div style={{ fontSize: '14px', fontWeight: 600 }}>"Transaction less than ₹10 Lakh requires CFO + CEO approval."</div></div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--border-color)', borderRadius: '4px', display: 'flex', justifyContent: 'space-between' }}><div style={{ fontSize: '13px', fontWeight: 500 }}>1. Dept Manager</div></div>
             <ArrowDown size={16} />
@@ -264,7 +475,17 @@ function App() {
     <div className="dashboard-content" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '65% 35%', gap: '24px', flexGrow: 1, overflow: 'hidden' }}>
         <div className="panel" style={{ display: 'flex', flexDirection: 'column', padding: 0, height: '600px' }}>
-          <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}><div style={{ fontSize: '13px', fontWeight: 600 }}>Suggested Query Prompts: Why is INV-203 flagged?</div></div>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: 4 }}>Realm AI Audit Assistant</div>
+              <GenwBadge label="GenW Realm AI" />
+            </div>
+          </div>
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#fff', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {['Why was INV-9042 blocked?', 'Show Nexus Consulting flags', 'What rules triggered today?', 'Summarize this month\'s risk'].map((chip, i) => (
+              <button key={i} className="query-chip">{chip}</button>
+            ))}
+          </div>
           <div style={{ flexGrow: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}><div style={{ maxWidth: '80%', padding: '12px 16px', backgroundColor: 'var(--primary-color)', color: '#fff', borderRadius: '8px 8px 0 8px', fontSize: '14px' }}>Can you explain why INV-203 from Alpha Services Ltd was flagged?</div></div>
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}><div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--secondary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px' }}><Bot size={18} color="#fff" /></div>
@@ -291,6 +512,133 @@ function App() {
       </div>
     </div>
   );
+
+  const renderVendors = () => (
+    <div className="dashboard-content">
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 6 }}>Vendor Intelligence Verification</h2>
+            <GenwBadge label="External Intelligence Agent" />
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'right' }}>
+            <div style={{ fontWeight: 600 }}>Data Sources</div>
+            <div>MCA21 · GST Portal · Brave Search · Exa.ai · Web Scraper</div>
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+        {vendorData.map((vendor) => {
+          const bandColor = vendor.riskBand === 'Critical' ? '#dc2626' : vendor.riskBand === 'High' ? '#ea580c' : vendor.riskBand === 'Medium' ? '#f59e0b' : '#16a34a';
+          const bandBg = vendor.riskBand === 'Critical' ? '#fee2e2' : vendor.riskBand === 'High' ? '#fff0eb' : vendor.riskBand === 'Medium' ? '#fffbeb' : '#f0fdf4';
+          return (
+            <div key={vendor.id} className="vendor-card" style={{ borderTop: `4px solid ${bandColor}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 700 }}>{vendor.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>GSTIN: {vendor.gstin}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 800, color: bandColor }}>{vendor.riskScore}</div>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: bandBg, color: bandColor }}>{vendor.riskBand} RISK</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                {vendor.checks.map((chk, ci) => {
+                  const icon = chk.status === 'pass'
+                    ? <CheckCircle size={14} color="#16a34a" />
+                    : chk.status === 'warn'
+                    ? <AlertTriangle size={14} color="#f59e0b" />
+                    : <XCircle size={14} color="#dc2626" />;
+                  const labelColor = chk.status === 'pass' ? '#16a34a' : chk.status === 'warn' ? '#b45309' : '#dc2626';
+                  return (
+                    <div key={ci} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 6, background: '#f8fafc', border: '1px solid var(--border-color)' }}>
+                      <div style={{ marginTop: 1 }}>{icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: labelColor }}>{chk.label}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>{chk.detail}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
+                <div style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }}>Intelligence Sources</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {vendor.sources.map((src, si) => (
+                    <span key={si} style={{ fontSize: '11px', padding: '2px 8px', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-muted)' }}>{src}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderReview = () => {
+    const handleAction = (itemId, action) => {
+      if (action === 'override') {
+        setOverrideModal({ open: true, itemId });
+      } else {
+        setReviewStatuses(prev => ({ ...prev, [itemId]: action }));
+      }
+    };
+    return (
+      <div className="dashboard-content">
+        <div style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 6 }}>Audit Escalation Queue</h2>
+          <GenwBadge label="Human-in-the-Loop Governance" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {reviewQueueData.map((item) => {
+            const resolved = reviewStatuses[item.id];
+            const priorityColor = item.priority === 'Critical' ? '#dc2626' : item.priority === 'High' ? '#ea580c' : '#f59e0b';
+            const priorityBg = item.priority === 'Critical' ? '#fee2e2' : item.priority === 'High' ? '#fff0eb' : '#fffbeb';
+            return (
+              <div key={item.id} className="review-card" style={{ borderLeft: `4px solid ${priorityColor}`, opacity: resolved ? 0.65 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--primary-color)' }}>{item.invoiceId}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: priorityBg, color: priorityColor }}>{item.priority}</span>
+                        {resolved && <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: resolved === 'approved' ? '#dcfce7' : resolved === 'rejected' ? '#fee2e2' : '#fef3c7', color: resolved === 'approved' ? '#16a34a' : resolved === 'rejected' ? '#dc2626' : '#b45309' }}>{resolved.toUpperCase()}</span>}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 4 }}>{item.vendor} &nbsp;·&nbsp; {item.amount}</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: priorityColor }}>{item.score}</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                  <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: 6 }}>
+                    <div style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4 }}>Flagging Agent</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600 }}><span className="agent-tag">{item.agent}</span></div>
+                  </div>
+                  <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: 6 }}>
+                    <div style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4 }}>Policy Rule Triggered</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--danger-color)' }}>{item.rule}</div>
+                  </div>
+                </div>
+                <div style={{ padding: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, marginBottom: 16 }}>
+                  <div style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: '#b45309', marginBottom: 4 }}>Evidence Summary</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-dark)' }}>{item.evidence}</div>
+                </div>
+                {!resolved && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="review-btn approve" onClick={() => handleAction(item.id, 'approved')}><CheckCircle size={14} /> Approve Investigation</button>
+                    <button className="review-btn reject" onClick={() => handleAction(item.id, 'rejected')}><XCircle size={14} /> Reject Flag</button>
+                    <button className="review-btn override" onClick={() => handleAction(item.id, 'override')}><Lock size={14} /> Override with Justification</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const renderReports = () => (
     <div className="dashboard-content">
@@ -340,21 +688,107 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Discrepancy Modal */}
+      {discrepancyModal.open && discrepancyModal.row && (
+        <div className="modal-overlay" onClick={() => setDiscrepancyModal({ open: false, row: null })}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700 }}>Discrepancy Detail — {discrepancyModal.row.po}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>Three-Way Match Analysis</div>
+              </div>
+              <button className="modal-close" onClick={() => setDiscrepancyModal({ open: false, row: null })}><X size={18} /></button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+              {[{ label: 'PO Quantity', qty: discrepancyModal.row.poQty, color: '#0b2241', bg: '#f0f4ff' },
+                { label: 'GRN (Received)', qty: discrepancyModal.row.recvQty, color: discrepancyModal.row.recvQty !== discrepancyModal.row.poQty ? '#dc2626' : '#16a34a', bg: discrepancyModal.row.recvQty !== discrepancyModal.row.poQty ? '#fee2e2' : '#f0fdf4' },
+                { label: 'Billed (Invoice)', qty: discrepancyModal.row.billsQty, color: discrepancyModal.row.billsQty !== discrepancyModal.row.poQty ? '#f59e0b' : '#16a34a', bg: discrepancyModal.row.billsQty !== discrepancyModal.row.poQty ? '#fffbeb' : '#f0fdf4' },
+              ].map((col, ci) => (
+                <div key={ci} style={{ padding: 16, borderRadius: 8, background: col.bg, textAlign: 'center', border: `2px solid ${col.color}20` }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8 }}>{col.label}</div>
+                  <div style={{ fontSize: '32px', fontWeight: 800, color: col.color }}>{col.qty}</div>
+                </div>
+              ))}
+            </div>
+            {discrepancyModal.row.recvQty !== discrepancyModal.row.poQty && (
+              <div style={{ padding: '12px 16px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 6, marginBottom: 12 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#dc2626' }}>
+                  ⚠ GRN Delta: {discrepancyModal.row.poQty - discrepancyModal.row.recvQty} units not received
+                </div>
+              </div>
+            )}
+            {discrepancyModal.row.billsQty !== discrepancyModal.row.recvQty && (
+              <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, marginBottom: 12 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#b45309' }}>
+                  ⚠ Overbilling Delta: {discrepancyModal.row.billsQty - discrepancyModal.row.recvQty} units billed but not received
+                </div>
+              </div>
+            )}
+            {discrepancyModal.row.grn === 'Missing' && (
+              <div style={{ padding: '12px 16px', background: '#fee2e2', border: '2px dashed #dc2626', borderRadius: 6 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#dc2626' }}>❌ GRN not found in system — payment should be blocked until GRN is submitted</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Override Modal */}
+      {overrideModal.open && (
+        <div className="modal-overlay" onClick={() => setOverrideModal({ open: false, itemId: null })}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700 }}>Override with Justification</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>Human-in-the-Loop &mdash; Audit Trail Record</div>
+              </div>
+              <button className="modal-close" onClick={() => setOverrideModal({ open: false, itemId: null })}><X size={18} /></button>
+            </div>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '12px 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: '13px', color: '#b45309' }}>This override will be logged in the Audit Trail with your credentials, timestamp, and justification text.</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: 8 }}>Justification Reason <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+              <textarea
+                rows={4}
+                style={{ width: '100%', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 12px', fontSize: '14px', resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
+                placeholder="State the business reason for overriding this flag..."
+                value={overrideText}
+                onChange={e => setOverrideText(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button className="review-btn reject" onClick={() => setOverrideModal({ open: false, itemId: null })}>Cancel</button>
+              <button className="review-btn approve" onClick={handleOverrideSubmit} disabled={!overrideText.trim()}>Submit Override &amp; Log</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="sidebar">
-        <div className="sidebar-brand"><div className="brand-accent"></div><div><div style={{ fontSize: '15px', fontWeight: 700, lineHeight: 1.2 }}>AI Internal Audit</div><div style={{ fontSize: '11px', fontWeight: 400, opacity: 0.7 }}>Assistant</div></div></div>
+        <div className="sidebar-brand">
+          <div className="brand-accent"></div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, lineHeight: 1.2 }}>AuditIQ</div>
+            <div style={{ fontSize: '10px', fontWeight: 400, opacity: 0.6, marginTop: 2 }}>Powered by GenW.AI</div>
+          </div>
+        </div>
         <div className="sidebar-nav">
           <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><LayoutDashboard size={18} /> Dashboard</div>
-          <div className={`nav-item ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}><UploadCloud size={18} /> Data Upload</div>
-          <div className={`nav-item ${activeTab === 'matching' ? 'active' : ''}`} onClick={() => setActiveTab('matching')}><FileDigit size={18} /> Document Matching</div>
-          <div className={`nav-item ${activeTab === 'rules' ? 'active' : ''}`} onClick={() => setActiveTab('rules')}><CheckSquare size={18} /> Audit Rules</div>
+          <div className={`nav-item ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}><UploadCloud size={18} /> Data Ingestion</div>
+          <div className={`nav-item ${activeTab === 'matching' ? 'active' : ''}`} onClick={() => setActiveTab('matching')}><FileDigit size={18} /> Three-Way Matching</div>
+          <div className={`nav-item ${activeTab === 'rules' ? 'active' : ''}`} onClick={() => setActiveTab('rules')}><CheckSquare size={18} /> Policy Rules Engine</div>
           <div className={`nav-item ${activeTab === 'compliance' ? 'active' : ''}`} onClick={() => setActiveTab('compliance')}><ShieldCheck size={18} /> Compliance Checks</div>
-          <div className={`nav-item ${activeTab === 'assistant' ? 'active' : ''}`} onClick={() => setActiveTab('assistant')}><Bot size={18} /> Audit Assistant</div>
+          <div className={`nav-item ${activeTab === 'vendors' ? 'active' : ''}`} onClick={() => setActiveTab('vendors')}><Globe size={18} /> Vendor Intelligence</div>
+          <div className={`nav-item ${activeTab === 'review' ? 'active' : ''}`} onClick={() => setActiveTab('review')} style={{ position: 'relative' }}>
+            <Users size={18} /> Human Review Queue
+            <span style={{ marginLeft: 'auto', background: '#dc2626', color: '#fff', fontSize: '10px', fontWeight: 700, borderRadius: '10px', padding: '1px 6px' }}>4</span>
+          </div>
+          <div className={`nav-item ${activeTab === 'assistant' ? 'active' : ''}`} onClick={() => setActiveTab('assistant')}><Bot size={18} /> Realm AI Assistant</div>
           <div className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}><FileText size={18} /> Audit Reports</div>
         </div>
       </div>
       <div className="main-content">
         <div className="topbar">
-          <div className="page-title">AI Internal Audit Assistant</div>
+          <div className="page-title">AuditIQ &mdash; AI-Powered Audit Intelligence</div>
           <div className="topbar-actions" style={{ flexGrow: 1, justifyContent: 'flex-end' }}>
             <div className="user-profile"><div className="avatar">JD</div>John Doe<ChevronDown size={14} color="var(--text-muted)" /></div>
           </div>
@@ -365,6 +799,8 @@ function App() {
         {activeTab === 'matching' && renderMatching()}
         {activeTab === 'rules' && renderRules()}
         {activeTab === 'compliance' && renderCompliance()}
+        {activeTab === 'vendors' && renderVendors()}
+        {activeTab === 'review' && renderReview()}
         {activeTab === 'assistant' && renderAssistant()}
         {activeTab === 'reports' && renderReports()}
 
